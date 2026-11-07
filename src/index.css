@@ -1,0 +1,21 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #0f0e0c;
+  color: #f3ebe2;
+}
+
+button,
+input {
+  font: inherit;
+}
