@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Box, Typography } from '@mui/material'
 import { GlassRenderer } from '../glass/GlassRenderer.js'
+import { drawReedNumbers } from '../glass/reedNumbers.js'
 
 const PREVIEW_MAX_WIDTH = 1100
 const LIVE_MAX_EDGE = 960
@@ -122,6 +123,7 @@ const GlassPreview = forwardRef(function GlassPreview(
   ref
 ) {
   const canvasRef = useRef(null)
+  const overlayRef = useRef(null)
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const rendererRef = useRef(null)
@@ -195,6 +197,40 @@ const GlassPreview = forwardRef(function GlassPreview(
     }
   }
 
+  // Keep the number overlay matched to the WebGL canvas bitmap size.
+  function syncReedNumberOverlay() {
+    const webglCanvas = canvasRef.current
+    const overlayCanvas = overlayRef.current
+    const currentSettings = settingsRef.current
+
+    if (!webglCanvas || !overlayCanvas || !currentSettings) {
+      return
+    }
+
+    if (webglCanvas.width < 2 || webglCanvas.height < 2) {
+      overlayCanvas.width = 1
+      overlayCanvas.height = 1
+      return
+    }
+
+    if (
+      overlayCanvas.width !== webglCanvas.width ||
+      overlayCanvas.height !== webglCanvas.height
+    ) {
+      overlayCanvas.width = webglCanvas.width
+      overlayCanvas.height = webglCanvas.height
+    }
+
+    const context = overlayCanvas.getContext('2d')
+    drawReedNumbers(
+      context,
+      overlayCanvas.width,
+      overlayCanvas.height,
+      currentSettings.reedCount,
+      true
+    )
+  }
+
   // Draw a still image into the preview canvas.
   function drawStillPreview() {
     const renderer = rendererRef.current
@@ -207,6 +243,7 @@ const GlassPreview = forwardRef(function GlassPreview(
 
     const size = getDrawSize(image.width, image.height, container.clientWidth)
     renderer.render(getRenderSettings(), size.width, size.height, false)
+    syncReedNumberOverlay()
   }
 
   // Start / stop the camera when cameraActive or facingMode changes.
@@ -302,6 +339,7 @@ const GlassPreview = forwardRef(function GlassPreview(
                 container.clientWidth
               )
               renderer.render(getRenderSettings(), size.width, size.height, false)
+              syncReedNumberOverlay()
             }
           }
 
@@ -430,17 +468,37 @@ const GlassPreview = forwardRef(function GlassPreview(
         </Typography>
       )}
 
-      <canvas
-        ref={canvasRef}
-        style={{
-          // Keep display:block so the WebGL context stays valid.
-          display: 'block',
-          width: showCanvas ? '100%' : 0,
-          height: showCanvas ? 'auto' : 0,
-          maxWidth: '100%',
-          opacity: !showCanvas ? 0 : cameraActive && !cameraReady ? 0.25 : 1,
+      <Box
+        sx={{
+          position: 'relative',
+          display: showCanvas ? 'block' : 'none',
+          width: '100%',
+          lineHeight: 0,
+          opacity: cameraActive && !cameraReady ? 0.25 : 1,
         }}
-      />
+      >
+        <canvas
+          ref={canvasRef}
+          style={{
+            // Keep display:block so the WebGL context stays valid.
+            display: 'block',
+            width: '100%',
+            height: 'auto',
+            maxWidth: '100%',
+          }}
+        />
+        <canvas
+          ref={overlayRef}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+          }}
+        />
+      </Box>
     </Box>
   )
 })

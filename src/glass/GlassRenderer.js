@@ -1,4 +1,5 @@
 import { VERTEX_SHADER, FRAGMENT_SHADER } from './shaders.js'
+import { compositeWithReedNumbers } from './reedNumbers.js'
 
 // Compile a single GLSL shader and throw a clear error if it fails.
 function compileShader(gl, type, source) {
@@ -215,8 +216,10 @@ export class GlassRenderer {
 
     this.render(settings, exportWidth, exportHeight, true)
 
+    const labeledCanvas = compositeWithReedNumbers(this.canvas, settings.reedCount)
+
     return new Promise((resolve, reject) => {
-      this.canvas.toBlob(
+      labeledCanvas.toBlob(
         (blob) => {
           if (!blob) {
             reject(new Error('Failed to create PNG blob.'))
